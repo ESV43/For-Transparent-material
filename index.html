@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reflectance Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Reflectance Analysis</h1>
+        <form id="reflectance-form">
+            <label for="file-input">Upload Reflectance Data CSV:</label>
+            <input type="file" id="file-input" accept=".csv" required>
+            
+            <label for="n_s_input">Refractive Index of Substrate (n_s):</label>
+            <input type="number" id="n_s_input" placeholder="Enter n_s" step="0.01" required>
+            
+            <label for="A_input">Initial Guess for A:</label>
+            <input type="number" id="A_input" placeholder="Enter A" step="0.01" required>
+            
+            <button type="submit">Analyze</button>
+        </form>
+        
+        <div id="results">
+            <h2>Results</h2>
+            <p id="output"></p>
+            <canvas id="reflectance-plot"></canvas>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
