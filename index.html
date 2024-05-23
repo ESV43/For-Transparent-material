@@ -38,6 +38,7 @@
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
   <script>
     $(document).ready(function() {
       $('#data-form').submit(function(event) {
@@ -63,13 +64,13 @@
             reflectance.push(parseFloat(row[1]));
           }
 
-          // Perform calculations (using your Python code converted to JavaScript)
+          // Perform calculations
           var results = calculateCauchyCoefficientsAndThickness(wavelengths, reflectance, 1, n_s, a_init);
 
           // Display results
           $('#results').html(`
-            <p>Estimated Cauchy's coefficients: A = ${results.A}, B = ${results.B}</p>
-            <p>Estimated film thickness: d = ${results.d} nm</p>
+            <p>Estimated Cauchy's coefficients: A = ${results.A.toFixed(4)}, B = ${results.B.toFixed(4)}</p>
+            <p>Estimated film thickness: d = ${results.d.toFixed(2)} nm</p>
           `);
 
           // Plot the graph
@@ -104,9 +105,74 @@
         reader.readAsText(fileInput.files[0]);
       });
 
-      // Convert your Python code to JavaScript
+      // JavaScript implementation of the calculations
       function calculateCauchyCoefficientsAndThickness(wavelengths, reflectance, n_0, n_s, a_init) {
-        // ... (Your Python code converted to JavaScript) ...
+        // Cauchy's model
+        function cauchyRefractiveIndex(wavelength, A, B) {
+          return A + B / (wavelength * wavelength);
+        }
+
+        // Fresnel equations
+        function fresnelReflectance(wavelength, n_0, n_f, n_s, d) {
+          var r_01 = (n_0 - n_f) / (n_0 + n_f);
+          var r_12 = (n_f - n_s) / (n_f + n_s);
+          var delta = (4 * Math.PI * n_f * d) / wavelength;
+          var r_eff = r_01 + r_12 * Math.exp(-1j * delta);
+          var R = Math.abs(r_eff) * Math.abs(r_eff);
+          return R;
+        }
+
+        // Objective function
+        function objectiveFunction(params, wavelengths, experimentalReflectance, n_0, n_s) {
+          var A = params[0];
+          var B = params[1];
+          var d = params[2];
+          var theoreticalReflectance = [];
+
+          for (var i = 0; i < wavelengths.length; i++) {
+            var wavelength = wavelengths[i];
+            var n_f = cauchyRefractiveIndex(wavelength, A, B);
+            var R = fresnelReflectance(wavelength, n_0, n_f, n_s, d);
+            theoreticalReflectance.push(R);
+          }
+
+          var sumSquaredError = 0;
+          for (var i = 0; i < experimentalReflectance.length; i++) {
+            sumSquaredError += Math.pow(theoreticalReflectance[i] - experimentalReflectance[i], 2);
+          }
+          return sumSquaredError;
+        }
+
+        // Optimization using numeric.js
+        var result = numeric.uncmin(objectiveFunction, [a_init, 0.1, 200], {
+          args: [wavelengths, reflectance, n_0, n_s],
+          // Set bounds for optimization parameters
+          bounds: [
+            [1, 3], // A: 1 to 3
+            [0, 1], // B: 0 to 1
+            [0, 1000] // d: 0 to 1000 nm
+          ]
+        });
+
+        // Extract results and calculate theoretical reflectance
+        var A = result.x[0];
+        var B = result.x[1];
+        var d = result.x[2];
+        var theoreticalReflectance = [];
+
+        for (var i = 0; i < wavelengths.length; i++) {
+          var wavelength = wavelengths[i];
+          var n_f = cauchyRefractiveIndex(wavelength, A, B);
+          var R = fresnelReflectance(wavelength, n_0, n_f, n_s, d);
+          theoreticalReflectance.push(R);
+        }
+
+        return {
+          A: A,
+          B: B,
+          d: d,
+          theoretical_reflectance: theoreticalReflectance
+        };
       }
     });
   </script>
