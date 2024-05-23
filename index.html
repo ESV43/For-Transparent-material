@@ -107,6 +107,35 @@
 
       // JavaScript implementation of the calculations
       function calculateCauchyCoefficientsAndThickness(wavelengths, reflectance, n_0, n_s, a_init) {
+        // Complex number object
+        function Complex(real, imag) {
+          this.real = real;
+          this.imag = imag;
+        }
+
+        // Complex number addition
+        Complex.prototype.add = function(other) {
+          return new Complex(this.real + other.real, this.imag + other.imag);
+        };
+
+        // Complex number subtraction
+        Complex.prototype.sub = function(other) {
+          return new Complex(this.real - other.real, this.imag - other.imag);
+        };
+
+        // Complex number multiplication
+        Complex.prototype.mul = function(other) {
+          return new Complex(
+            this.real * other.real - this.imag * other.imag,
+            this.real * other.imag + this.imag * other.real
+          );
+        };
+
+        // Complex number magnitude
+        Complex.prototype.abs = function() {
+          return Math.sqrt(this.real * this.real + this.imag * this.imag);
+        };
+
         // Cauchy's model
         function cauchyRefractiveIndex(wavelength, A, B) {
           return A + B / (wavelength * wavelength);
@@ -114,11 +143,12 @@
 
         // Fresnel equations
         function fresnelReflectance(wavelength, n_0, n_f, n_s, d) {
-          var r_01 = (n_0 - n_f) / (n_0 + n_f);
-          var r_12 = (n_f - n_s) / (n_f + n_s);
+          var r_01 = new Complex((n_0 - n_f) / (n_0 + n_f), 0);
+          var r_12 = new Complex((n_f - n_s) / (n_f + n_s), 0);
           var delta = (4 * Math.PI * n_f * d) / wavelength;
-          var r_eff = r_01 + r_12 * Math.exp(-1j * delta);
-          var R = Math.abs(r_eff) * Math.abs(r_eff);
+          var exp_delta = new Complex(Math.cos(delta), -Math.sin(delta));
+          var r_eff = r_01.add(r_12.mul(exp_delta));
+          var R = r_eff.abs() * r_eff.abs();
           return R;
         }
 
