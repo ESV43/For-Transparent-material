@@ -1,33 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Reflectance Analysis</title>
-    <link rel="stylesheet" href="styles.css">
+  <title>Cauchy Model for Thin Film Reflectance</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Same CSS as before */
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Reflectance Analysis</h1>
-        <form id="reflectance-form">
-            <label for="file-input">Upload Reflectance Data CSV:</label>
-            <input type="file" id="file-input" accept=".csv" required>
-            
-            <label for="n_s_input">Refractive Index of Substrate (n_s):</label>
-            <input type="number" id="n_s_input" placeholder="Enter n_s" step="0.01" required>
-            
-            <label for="A_input">Initial Guess for A:</label>
-            <input type="number" id="A_input" placeholder="Enter A" step="0.01" required>
-            
-            <button type="submit">Analyze</button>
-        </form>
-        
-        <div id="results">
-            <h2>Results</h2>
-            <p id="output"></p>
-            <canvas id="reflectance-plot"></canvas>
-        </div>
-    </div>
-    
-    <script src="script.js"></script>
+  <div class="container">
+    <h1>Cauchy Model for Thin Film Reflectance</h1>
+
+    <form id="data-form">
+      <div class="form-group">
+        <label for="file-input">CSV File:</label>
+        <input type="file" class="form-control-file" id="file-input">
+      </div>
+      <div class="form-group">
+        <label for="n-s">Refractive Index of Substrate (n_s):</label>
+        <input type="number" class="form-control" id="n-s" placeholder="Enter the refractive index">
+      </div>
+      <div class="form-group">
+        <label for="a-init">Initial Guess for A:</label>
+        <input type="number" class="form-control" id="a-init" placeholder="Enter initial guess for A">
+      </div>
+      <button type="submit" class="btn btn-primary">Calculate</button>
+    </form>
+
+    <div class="result" id="results">
+      </div>
+
+    <div class="plot-container" id="plot-container">
+      </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#data-form').submit(function(event) {
+        event.preventDefault();
+
+        // Get input values
+        var fileInput = $('#file-input')[0];
+        var n_s = parseFloat($('#n-s').val());
+        var a_init = parseFloat($('#a-init').val());
+
+        // Read CSV file
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var csvData = e.target.result;
+          var rows = csvData.split('\n');
+          var wavelengths = [];
+          var reflectance = [];
+
+          // Parse CSV data
+          for (var i = 1; i < rows.length; i++) {
+            var row = rows[i].split(',');
+            wavelengths.push(parseFloat(row[0]));
+            reflectance.push(parseFloat(row[1]));
+          }
+
+          // Perform calculations (using your Python code converted to JavaScript)
+          var results = calculateCauchyCoefficientsAndThickness(wavelengths, reflectance, 1, n_s, a_init);
+
+          // Display results
+          $('#results').html(`
+            <p>Estimated Cauchy's coefficients: A = ${results.A}, B = ${results.B}</p>
+            <p>Estimated film thickness: d = ${results.d} nm</p>
+          `);
+
+          // Plot the graph
+          var trace1 = {
+            x: wavelengths,
+            y: reflectance,
+            mode: 'markers',
+            name: 'Experimental Data'
+          };
+
+          var trace2 = {
+            x: wavelengths,
+            y: results.theoretical_reflectance,
+            mode: 'lines',
+            name: 'Fitted Curve'
+          };
+
+          var data = [trace1, trace2];
+
+          var layout = {
+            title: 'Reflectance vs. Wavelength',
+            xaxis: {
+              title: 'Wavelength (nm)'
+            },
+            yaxis: {
+              title: 'Reflectance'
+            }
+          };
+
+          Plotly.newPlot('plot-container', data, layout);
+        };
+        reader.readAsText(fileInput.files[0]);
+      });
+
+      // Convert your Python code to JavaScript
+      function calculateCauchyCoefficientsAndThickness(wavelengths, reflectance, n_0, n_s, a_init) {
+        // ... (Your Python code converted to JavaScript) ...
+      }
+    });
+  </script>
 </body>
 </html>
